@@ -1,0 +1,6 @@
+# Implementation scope
+The user's latest request is to build the frontend. The pasted implementation brief informs the interaction and forensic result semantics, but this delivery does not implement a Python analysis backend or production evidence preservation. The latest color preference overrides the pasted amber-primary preference: muted teal is primary; amber is reserved for uncertainty.
+
+The static React frontend contains an explicitly marked fixture investigation. Fixture mode is controlled by VITE_DEV_FIXTURE at build time. No fallback to fixture results occurs after a request error. Uploaded files are browser-session objects only, with real Web Crypto SHA-256 calculation; no server or chain-of-custody claims are made. Review notes and case metadata persist in localStorage; uploaded media and local evidence metadata do not survive refresh. No evidence is sent to external analysis services.
+
+React 18, TypeScript, Vite, Zod and Lucide are used. Plain CSS provides the design tokens and responsive styles. The graph, waveform and timeline are accessible code-native SVG/CSS fixture representations. Heavy production integrations (React Flow, wavesurfer, Recharts, TanStack Query, Zustand, shadcn and Tailwind) are deferred until real endpoint and media requirements warrant them. No inference, validation, or measured benchmark results are claimed.
