@@ -1,11 +1,13 @@
-import {useState} from 'react';
+import {useRef,useState} from 'react';
 import {
   ArrowRight, AudioLines, Check, ChevronRight, CircleCheck, Database,
   ExternalLink, FileCheck2, FileSearch, FileText, Fingerprint, GitBranch,
   Hash, Image as ImageIcon, Languages, Link2, LockKeyhole, Menu, Network,
-  Play, ScanSearch, ShieldCheck, Upload, Video, X
+  ScanSearch, ShieldCheck, Upload, Video, X
 } from 'lucide-react';
 import heroReference from './assets/forensics-hero-reference.png';
+import heroReferenceHi from './assets/forensics-hero-reference-hi.png';
+import {useI18n} from './i18n';
 import './landing.css';
 
 type LandingProps={onAnalyse:()=>void;onReport:()=>void};
@@ -95,78 +97,107 @@ function InfrastructureIllustration(){return <svg className="infrastructure-art"
   </g>
 </svg>}
 
-function DashboardPreview(){return <div className="preview-shell" aria-label="Illustrative Pratyaksh analysis dashboard">
-  <div className="preview-top"><div><span className="preview-kicker">CASE / CYB-2026-0142</span><strong>Suspected executive impersonation</strong></div><div className="preview-badges"><span>OPEN</span><span>REVIEW REQUIRED</span></div></div>
+const previewEvidence=[
+  {id:'EVID-001',name:'interview.mp4',kind:'Video',icon:Video,score:87,duration:32,finding:'Indicators detected',detail:'Face-region signal observed in sampled frames.',relation:'similarity candidate'},
+  {id:'EVID-002',name:'call.wav',kind:'Audio',icon:AudioLines,score:72,duration:18,finding:'Voice anomaly detected',detail:'Spectral discontinuities observed in the selected interval.',relation:'reference comparison'},
+  {id:'REF-001',name:'historical portrait',kind:'Image',icon:Link2,score:11,duration:1,finding:'No synthetic indicators',detail:'Public-domain historical reference image retained for comparison.',relation:'verified reference'}
+] as const;
+
+const demoMedia={
+  Video:{src:'https://developer.mozilla.org/shared-assets/videos/flower.mp4',label:'MDN video sample',href:'https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video'},
+  Image:{src:'https://commons.wikimedia.org/wiki/Special:Redirect/file/RobertCornelius.jpg?width=900',label:'Wikimedia Commons · public-domain historical portrait',href:'https://commons.wikimedia.org/wiki/File:RobertCornelius.jpg'},
+  Audio:{src:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Oh,_yes._I_am_here.ogg',label:'Wikimedia Commons · public-domain VOA audio',href:'https://commons.wikimedia.org/wiki/File:Oh,_yes._I_am_here.ogg'}
+} as const;
+
+function DashboardPreview(){
+  const {t}=useI18n();
+  const [selectedId,setSelectedId]=useState('EVID-001');
+  const [mode,setMode]=useState<'Video'|'Image'|'Audio'>('Video');
+  const [progress,setProgress]=useState(26);
+  const [mediaDuration,setMediaDuration]=useState(32);
+  const mediaRef=useRef<HTMLMediaElement|null>(null);
+  const item=previewEvidence.find(entry=>entry.id===selectedId)??previewEvidence[0];
+  const choose=(id:string)=>{const next=previewEvidence.find(entry=>entry.id===id);if(!next)return;mediaRef.current?.pause();setSelectedId(id);setMode(next.kind);setProgress(0);setMediaDuration(next.duration)};
+  const changeMode=(nextMode:'Video'|'Image'|'Audio')=>{mediaRef.current?.pause();setMode(nextMode);setProgress(0)};
+  const syncMedia=(media:HTMLMediaElement)=>{mediaRef.current=media;const duration=Number.isFinite(media.duration)?media.duration:item.duration;setMediaDuration(duration);setProgress(duration?media.currentTime/duration*100:0)};
+  const seek=(value:number)=>{setProgress(value);const media=mediaRef.current;if(media&&Number.isFinite(media.duration))media.currentTime=media.duration*value/100};
+  const activeDuration=mode==='Image'?1:mediaDuration;
+  const elapsed=Math.round(activeDuration*progress/100);
+  const time=(seconds:number)=>`00:${String(seconds).padStart(2,'0')}.000`;
+  const credit=demoMedia[mode];
+  return <div className="preview-shell interactive-preview" aria-label={t('Interactive Pratyaksh analysis dashboard')}>
+  <div className="preview-top"><div><span className="preview-kicker">{t('CASE')} / CYB-2026-0142</span><strong>{t('Suspected executive impersonation')}</strong></div><div className="preview-badges"><span>{t('OPEN')}</span><span>{t('REVIEW REQUIRED')}</span></div></div>
   <div className="preview-grid">
-    <aside className="preview-tree"><p>EVIDENCE</p>{['EVID-001 · interview.mp4','EVID-002 · call.wav','REF-001 · verified clip'].map((x,i)=><div className={i===0?'selected':''} key={x}><span>{i===1?<AudioLines size={14}/>:i===2?<Link2 size={14}/>:<Video size={14}/>}</span>{x}</div>)}</aside>
+    <aside className="preview-tree"><p>{t('EVIDENCE')}</p>{previewEvidence.map(entry=>{const ItemIcon=entry.icon;return <button className={selectedId===entry.id?'selected':''} key={entry.id} onClick={()=>choose(entry.id)} aria-pressed={selectedId===entry.id}><span><ItemIcon size={14}/></span>{entry.id} · {t(entry.name)}</button>})}</aside>
     <section className="preview-viewer">
-      <div className="preview-tabs"><span className="active">Video</span><span>Image</span><span>Audio</span><small>00:08.240 / 00:32.000</small></div>
-      <div className="preview-media"><div className="preview-person"><i/><i/><i/></div><div className="heatmap-box"><span>REGION 04</span></div><button aria-label="Play sample preview"><Play size={17} fill="currentColor"/></button></div>
-      <div className="preview-timeline"><span/><span/><span className="marked"/><span className="marked"/><span/><span/><span/><span/></div>
-      <div className="custody"><p>CHAIN OF CUSTODY</p><div><span><CircleCheck size={13}/>09:42 Intake</span><i/><span><CircleCheck size={13}/>09:43 SHA-256</span><i/><span><CircleCheck size={13}/>10:21 Analysis</span></div></div>
+      <div className="preview-tabs">{(['Video','Image','Audio'] as const).map(tab=><button className={mode===tab?'active':''} onClick={()=>changeMode(tab)} aria-pressed={mode===tab} key={tab}>{t(tab)}</button>)}<small>{mode==='Image'?t('STATIC IMAGE'):`${time(elapsed)} / ${time(Math.round(activeDuration))}`}</small></div>
+      <div className={`preview-media real-media mode-${mode.toLowerCase()}`}><span className="preview-mode-label">{t(mode)} · {t('demonstration · not case evidence')}</span>{mode==='Video'&&<video key="demo-video" controls muted playsInline preload="metadata" src={demoMedia.Video.src} onLoadedMetadata={event=>syncMedia(event.currentTarget)} onTimeUpdate={event=>syncMedia(event.currentTarget)}/>} {mode==='Image'&&<img src={demoMedia.Image.src} alt="Public-domain 1839 Robert Cornelius self-portrait used as demonstration reference media"/>} {mode==='Audio'&&<div className="real-audio"><img src={demoMedia.Image.src} alt="Public-domain historical portrait accompanying the public-domain speech sample"/><audio key="demo-audio" controls preload="metadata" src={demoMedia.Audio.src} onLoadedMetadata={event=>syncMedia(event.currentTarget)} onTimeUpdate={event=>syncMedia(event.currentTarget)}/></div>}<a className="media-credit" href={credit.href} target="_blank" rel="noreferrer">{t('Source')}: {credit.label}<ExternalLink size={10}/></a></div>
+      <div className="preview-timeline" aria-label="Preview timeline">{Array.from({length:8},(_,i)=><button key={i} className={(i+1)*12.5<=progress?'marked':''} onClick={()=>seek((i+1)*12.5)} disabled={mode==='Image'} aria-label={`Seek to ${Math.round((i+1)*12.5)} percent`}/>)}</div>
+      <div className="custody"><p>{t('CHAIN OF CUSTODY')}</p><div><span><CircleCheck size={13}/>09:42 {t('Intake')}</span><i/><span><CircleCheck size={13}/>09:43 SHA-256</span><i/><span><CircleCheck size={13}/>10:21 {t('Analysis')}</span></div></div>
     </section>
-    <aside className="preview-findings"><p>ANALYSIS SUMMARY</p><div className="confidence"><span>MODEL SCORE</span><strong>87<small>%</small></strong><div><i/></div><em>Not calibrated as probability</em></div><div className="preview-finding"><span>SYNTHETIC MEDIA</span><strong>Indicators detected</strong><p>Face-region signal observed in sampled frames.</p></div><div className="mini-graph"><span>REF-001</span><i/><span>EVID-001</span><small>similarity candidate</small></div></aside>
+    <aside className="preview-findings" aria-live="polite"><p>{t('ANALYSIS SUMMARY')}</p><div className="confidence"><span>{t('MODEL SCORE')}</span><strong>{item.score}<small>%</small></strong><div><i style={{width:`${item.score}%`}}/></div><em>{t('Not calibrated as probability')}</em></div><div className="preview-finding"><span>{t(item.kind==='Audio'?'AUDIO FORENSICS':'SYNTHETIC MEDIA')}</span><strong>{t(item.finding)}</strong><p>{t(item.detail)}</p></div><div className="mini-graph"><span>REF-001</span><i/><span>{item.id}</span><small>{t(item.relation)}</small></div></aside>
   </div>
 </div>}
 
 export default function Landing({onAnalyse,onReport}:LandingProps){
-  const [hindi,setHindi]=useState(false);
+  const {language,setLanguage,t}=useI18n();
   const go=(id:string)=>document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
-  return <div className="landing-page">
+  return <div className="landing-page" data-language={language}>
     <main id="top">
-      <section className="reference-hero" aria-label="Pratyaksh multimedia forensics">
-        <img src={heroReference} alt="Pratyaksh digital forensics hero banner"/>
+      <section className="reference-hero" data-language={language} aria-label="Pratyaksh multimedia forensics">
+        <img src={language==='hi'?heroReferenceHi:heroReference} alt={language==='hi'?'प्रत्यक्ष डिजिटल फोरेंसिक हिंदी हीरो बैनर':'Pratyaksh digital forensics hero banner'}/>
         <button className="reference-hotspot home" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})} aria-label="Pratyaksh home"/>
-        <button className="reference-hotspot environment" onClick={()=>go('environment')} aria-label="Environment"/>
-        <button className="reference-hotspot capabilities" onClick={()=>go('capabilities')} aria-label="Capabilities"/>
-        <button className="reference-hotspot pipeline" onClick={()=>go('workflow')} aria-label="Pipeline"/>
-        <button className="reference-hotspot preview" onClick={()=>go('preview')} aria-label="Preview"/>
-        <button className="reference-hotspot compliance" onClick={()=>go('compliance')} aria-label="Compliance"/>
-        <button className="reference-hotspot language" onClick={()=>setHindi(v=>!v)} aria-label="Toggle English and Hindi" aria-pressed={hindi}/>
+        <button className="reference-hotspot environment nav-translate" data-hi="परिवेश" onClick={()=>go('environment')} aria-label={t('Environment')}/>
+        <button className="reference-hotspot capabilities nav-translate" data-hi="क्षमताएँ" onClick={()=>go('capabilities')} aria-label={t('Capabilities')}/>
+        <button className="reference-hotspot pipeline nav-translate" data-hi="प्रक्रिया" onClick={()=>go('workflow')} aria-label={t('Pipeline')}/>
+        <button className="reference-hotspot preview nav-translate" data-hi="पूर्वावलोकन" onClick={()=>go('preview')} aria-label={t('Preview')}/>
+        <button className="reference-hotspot compliance nav-translate" data-hi="अनुपालन" onClick={()=>go('compliance')} aria-label={t('Compliance')}/>
+        <button className="reference-hotspot language-en" onClick={()=>setLanguage('en')} aria-label="Use English" aria-pressed={language==='en'}/>
+        <button className="reference-hotspot language-hi" onClick={()=>setLanguage('hi')} aria-label="हिन्दी का उपयोग करें" aria-pressed={language==='hi'}/>
         <button className="reference-hotspot analyse" onClick={onAnalyse} aria-label="Analyse Evidence"/>
         <button className="reference-hotspot report" onClick={onReport} aria-label="View Sample Report"/>
       </section>
 
       <section className="environment-section section-band" id="environment"><div className="landing-container">
-        <div className="section-heading"><div><span className="overline">THE INVESTIGATION ENVIRONMENT</span><h2>Media evidence now sits inside the crime scene.</h2></div><p>From a voice note in a payment fraud to a forwarded clip in a public-order investigation, the central question is no longer only what a file shows—but what the evidence can support.</p></div>
+        <div className="section-heading"><div><span className="overline">{t('THE INVESTIGATION ENVIRONMENT')}</span><h2>{t('Media evidence now sits inside the crime scene.')}</h2></div><p>{t('From a voice note in a payment fraud to a forwarded clip in a public-order investigation, the central question is no longer only what a file shows—but what the evidence can support.')}</p></div>
         <div className="environment-grid">{environment.map(item=><article key={item.number}>
-          <div className="card-head"><span>{item.number}</span><small>{item.tag}</small></div><h3>{item.title}</h3><p>{item.description}</p>
-          <a href={item.url} target="_blank" rel="noreferrer"><span>VERIFIED HEADLINE</span><strong>{item.headline}</strong><small>{item.source} · {item.date}<ExternalLink size={12}/></small></a>
+          <div className="card-head"><span>{item.number}</span><small>{t(item.tag)}</small></div><h3>{t(item.title)}</h3><p>{t(item.description)}</p>
+          <a href={item.url} target="_blank" rel="noreferrer"><span>{t('VERIFIED HEADLINE')}</span><strong>{item.headline}</strong><small>{item.source} · {item.date}<ExternalLink size={12}/></small></a>
         </article>)}</div>
       </div></section>
 
       <section className="verification-section"><div className="landing-container">
-        <div className="verification-intro"><span className="overline">WHY VERIFICATION</span><h2>A compelling image is not yet a forensic conclusion.</h2><p>Pratyaksh keeps preservation, analysis and interpretation separate. Each finding must answer what was examined, how it was examined, where the supporting artefact is, and what the method cannot establish.</p></div>
-        <div className="principle-grid">{principles.map(([title,text],i)=><article key={title}><span>{String(i+1).padStart(2,'0')}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
+        <div className="verification-intro"><span className="overline">{t('WHY VERIFICATION')}</span><h2>{t('A compelling image is not yet a forensic conclusion.')}</h2><p>{t('Pratyaksh keeps preservation, analysis and interpretation separate. Each finding must answer what was examined, how it was examined, where the supporting artefact is, and what the method cannot establish.')}</p></div>
+        <div className="principle-grid">{principles.map(([title,text],i)=><article key={title}><span>{String(i+1).padStart(2,'0')}</span><h3>{t(title)}</h3><p>{t(text)}</p></article>)}</div>
       </div></section>
 
       <section className="capabilities-section section-band" id="capabilities"><div className="landing-container">
-        <div className="section-heading"><div><span className="overline">CAPABILITIES</span><h2>Five connected forensic modules.</h2></div><p>Independent result channels converge in one case workspace without collapsing uncertainty into a single “real or fake” label.</p></div>
-        <div className="capability-grid">{capabilities.map(item=><article key={item.n}><span className="cap-number">{item.n}</span><item.icon size={24}/><h3>{item.title}</h3><p>{item.text}</p><span className="cap-status">BOUNDED / EXPLAINABLE</span></article>)}</div>
+        <div className="section-heading"><div><span className="overline">{t('CAPABILITIES')}</span><h2>{t('Five connected forensic modules.')}</h2></div><p>{t('Independent result channels converge in one case workspace without collapsing uncertainty into a single “real or fake” label.')}</p></div>
+        <div className="capability-grid">{capabilities.map(item=><article key={item.n}><span className="cap-number">{item.n}</span><item.icon size={24}/><h3>{t(item.title)}</h3><p>{t(item.text)}</p><span className="cap-status">{t('BOUNDED / EXPLAINABLE')}</span></article>)}</div>
       </div></section>
 
       <section className="workflow-section" id="workflow"><div className="landing-container">
-        <div className="section-heading"><div><span className="overline">HOW IT WORKS</span><h2>One evidentiary thread, end to end.</h2></div><p>Structured identifiers and saved records carry context from intake through review and export.</p></div>
-        <ol className="pipeline">{pipeline.map((step,i)=><li key={step.title}><span className="step-number">{String(i+1).padStart(2,'0')}</span><step.icon size={22}/><h3>{step.title}</h3><code>{step.code}</code>{i<pipeline.length-1&&<ChevronRight className="pipeline-arrow"/>}</li>)}</ol>
+        <div className="section-heading"><div><span className="overline">{t('HOW IT WORKS')}</span><h2>{t('One evidentiary thread, end to end.')}</h2></div><p>{t('Structured identifiers and saved records carry context from intake through review and export.')}</p></div>
+        <ol className="pipeline">{pipeline.map((step,i)=><li key={step.title}><span className="step-number">{String(i+1).padStart(2,'0')}</span><step.icon size={22}/><h3>{t(step.title)}</h3><code>{step.code}</code>{i<pipeline.length-1&&<ChevronRight className="pipeline-arrow"/>}</li>)}</ol>
       </div></section>
 
       <section className="product-preview section-band" id="preview"><div className="landing-container">
-        <div className="section-heading"><div><span className="overline">PRODUCT PREVIEW</span><h2>The evidence, finding and basis—kept in view.</h2></div><p>A three-pane review workspace links the selected media region to its method, score semantics, custody events and provenance relationships.</p></div>
+        <div className="section-heading"><div><span className="overline">{t('PRODUCT PREVIEW')}</span><h2>{t('The evidence, finding and basis—kept in view.')}</h2></div><p>{t('A three-pane review workspace links the selected media region to its method, score semantics, custody events and provenance relationships.')}</p></div>
         <DashboardPreview/>
-        <div className="screen-index"><span>CONNECTED SCREENS</span>{['Evidence upload + case creation','Analysis dashboard','Explainability view','Provenance graph','Report generator + export'].map(x=><button key={x} onClick={onAnalyse}>{x}<ArrowRight size={12}/></button>)}</div>
+        <div className="screen-index"><span>{t('CONNECTED SCREENS')}</span>{['Evidence upload + case creation','Analysis dashboard','Explainability view','Provenance graph','Report generator + export'].map(x=><button key={x} onClick={onAnalyse}>{t(x)}<ArrowRight size={12}/></button>)}</div>
       </div></section>
 
       <section className="compliance-section" id="compliance"><div className="landing-container compliance-grid">
-        <div className="trust-copy"><span className="overline">TRUST & COMPLIANCE</span><h2>Designed for a reviewable electronic record.</h2><p>The prototype supports the information an investigator may need when preparing electronic evidence under Section 63 of the Bharatiya Sakshya Adhiniyam, 2023. It does not itself issue legal certification.</p>
-          <ol><li><span>01</span><div><h3>Hash every preserved item</h3><p>Record SHA-256, receipt context and derivative relationships.</p></div></li><li><span>02</span><div><h3>Retain an audit trail</h3><p>Keep actor, action, target, timestamp and outcome visible.</p></div></li><li><span>03</span><div><h3>Export reproducible records</h3><p>Produce deterministic JSON, printable report and package manifest.</p></div></li></ol>
+        <div className="trust-copy"><span className="overline">{t('TRUST & COMPLIANCE')}</span><h2>{t('Designed for a reviewable electronic record.')}</h2><p>{t('The prototype supports the information an investigator may need when preparing electronic evidence under Section 63 of the Bharatiya Sakshya Adhiniyam, 2023. It does not itself issue legal certification.')}</p>
+          <ol><li><span>01</span><div><h3>{t('Hash every preserved item')}</h3><p>{t('Record SHA-256, receipt context and derivative relationships.')}</p></div></li><li><span>02</span><div><h3>{t('Retain an audit trail')}</h3><p>{t('Keep actor, action, target, timestamp and outcome visible.')}</p></div></li><li><span>03</span><div><h3>{t('Export reproducible records')}</h3><p>{t('Produce deterministic JSON, printable report and package manifest.')}</p></div></li></ol>
           <p className="context-note">Contextual references to I4C, CERT-In and state cyber cells indicate the operating environment only; no endorsement or affiliation is claimed.</p>
         </div>
-        <aside className="readiness-card"><div><ShieldCheck size={23}/><span>SECTION 63</span><small>READINESS CHECKLIST</small></div>{['Electronic record identified','Device or source particulars recorded','SHA-256 value included','Method and version disclosed','Examined scope stated','Limitations and failures retained','Producing authority review reserved'].map(x=><p key={x}><Check size={15}/>{x}</p>)}<footer>Final certification and admissibility assessment remain with the producing authority and the competent court.</footer></aside>
+        <aside className="readiness-card"><div><ShieldCheck size={23}/><span>SECTION 63</span><small>{t('READINESS CHECKLIST')}</small></div>{['Electronic record identified','Device or source particulars recorded','SHA-256 value included','Method and version disclosed','Examined scope stated','Limitations and failures retained','Producing authority review reserved'].map(x=><p key={x}><Check size={15}/>{t(x)}</p>)}<footer>{t('Final certification and admissibility assessment remain with the producing authority and the competent court.')}</footer></aside>
       </div></section>
 
-      <section className="cyber-strip" aria-label="National cybercrime reporting information"><div className="landing-container"><div><span>REPORT FINANCIAL CYBER FRAUD</span><strong>National helpline <b>1930</b></strong></div><a href="https://cybercrime.gov.in/" target="_blank" rel="noreferrer">cybercrime.gov.in <ExternalLink size={15}/></a></div></section>
+      <section className="cyber-strip" aria-label="National cybercrime reporting information"><div className="landing-container"><div><span>{t('REPORT FINANCIAL CYBER FRAUD')}</span><strong>{t('National helpline')} <b>1930</b></strong></div><a href="https://cybercrime.gov.in/" target="_blank" rel="noreferrer">cybercrime.gov.in <ExternalLink size={15}/></a></div></section>
     </main>
 
-    <footer className="landing-footer"><div className="landing-container footer-grid"><div><a href="#top" className="landing-brand"><Mark/><span>Pratyaksh <b>|</b> <span lang="hi">प्रत्यक्ष</span></span></a><p>Multimedia forensics for careful, traceable investigation.</p></div><div><span>EXPLORE</span><button onClick={()=>go('capabilities')}>Capabilities</button><button onClick={()=>go('workflow')}>Workflow</button><button onClick={()=>go('compliance')}>Trust & compliance</button></div><div><span>WORKSPACE</span><button onClick={onAnalyse}>Analyse evidence</button><button onClick={onReport}>Sample report</button></div><div><span>PROJECT STATUS</span><p>Independent academic prototype. Not a Government of India product, not affiliated with any public authority, and not a substitute for qualified forensic or legal review.</p></div></div><div className="landing-container footer-bottom"><span>© 2026 Pratyaksh prototype</span><span>No government emblems or official marks used.</span></div></footer>
+    <footer className="landing-footer"><div className="landing-container footer-grid"><div><a href="#top" className="landing-brand"><Mark/><span>Pratyaksh <b>|</b> <span lang="hi">प्रत्यक्ष</span></span></a><p>{t('Multimedia forensics for careful, traceable investigation.')}</p></div><div><span>{t('EXPLORE')}</span><button onClick={()=>go('capabilities')}>{t('Capabilities')}</button><button onClick={()=>go('workflow')}>{t('Workflow')}</button><button onClick={()=>go('compliance')}>{t('Trust & compliance')}</button></div><div><span>{t('WORKSPACE')}</span><button onClick={onAnalyse}>{t('Analyse evidence')}</button><button onClick={onReport}>{t('Sample report')}</button></div><div><span>{t('PROJECT STATUS')}</span><p>{t('Independent academic prototype. Not a Government of India product, not affiliated with any public authority, and not a substitute for qualified forensic or legal review.')}</p></div></div><div className="landing-container footer-bottom"><span>© 2026 Pratyaksh prototype</span><span>{t('No government emblems or official marks used.')}</span></div></footer>
   </div>
 }
