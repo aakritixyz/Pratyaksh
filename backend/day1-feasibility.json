@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "checked_at": "2026-11-03T17:35:40.875691+00:00",
+  "platform": {
+    "system": "Darwin",
+    "release": "25.6.0",
+    "machine": "arm64",
+    "python": "3.12.14",
+    "torch": "2.15.0",
+    "mps_built": true,
+    "mps_available": false
+  },
+  "media_tools": {
+    "ffmpeg": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffprobe": "ffprobe version 8.1.2 Copyright (c) 2007-2026 the FFmpeg developers"
+  },
+  "image_model": {
+    "model_id": "prithivMLmods/Deep-Fake-Detector-v2-Model",
+    "revision": "3a99ae26f52c7ac7c3a53103b6cf3a8b617f7093",
+    "manifest_verified": true,
+    "execution_smoke_test": {
+      "passed": true,
+      "runtime_ms": 3723,
+      "device": "cpu",
+      "purpose": "Execution only; generated solid colour has no authenticity label"
+    },
+    "selection_state": "probe_only_not_final_detector",
+    "weights_sha256": "88ac0939285009e3700cfc9b9a0912b14b092d200ef0df86efe4f2cf190ea4de"
+  }
+}

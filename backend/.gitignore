@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+models/
+third_party/
+data/
+evaluation/media/
+evaluation/manifest.local.json
+evaluation/predictions-*.json
+evaluation/results/

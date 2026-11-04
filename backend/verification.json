@@ -1,0 +1,30 @@
+{
+  "check": "Real pretrained weights through upload API on solid-color image; execution only",
+  "http_status": 200,
+  "model_revision": "3a99ae26f52c7ac7c3a53103b6cf3a8b617f7093",
+  "weights_sha256": "88ac0939285009e3700cfc9b9a0912b14b092d200ef0df86efe4f2cf190ea4de",
+  "environment": {
+    "torch": "2.15.0+cpu",
+    "transformers": "4.57.6",
+    "Pillow": "12.3.0"
+  },
+  "device": "cpu",
+  "runtime_ms": 5066,
+  "api_contract_tests_passed": 7,
+  "foundation_verification": {
+    "verified_at": "2026-11-03",
+    "platform": "macOS arm64",
+    "python": "3.12",
+    "api_and_evaluation_tests_passed": 14,
+    "dependency_check": "passed",
+    "real_model_smoke_test_repeated": true,
+    "upload_api_http_status": 200,
+    "upload_api_runtime_ms": 4799,
+    "solid_color_deepfake_score": 0.5705165863037109,
+    "note": "The generated solid-color image has no forensic ground-truth label; this verifies execution only."
+  },
+  "limitations": [
+    "No accuracy measurement",
+    "No held-out genuine/manipulated evaluation yet"
+  ]
+}
