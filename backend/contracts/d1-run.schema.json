@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pratyaksh.local/schemas/d1-run-1.0.json",
+  "title": "Pratyaksh D1 Analysis Run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "evidence_id",
+    "modality",
+    "execution_status",
+    "requested_at",
+    "configuration_version",
+    "findings",
+    "artifacts",
+    "errors"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "pattern": "^RUN-[0-9a-f]+$"},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "modality": {"enum": ["image", "video", "audio"]},
+    "execution_status": {
+      "enum": ["queued", "running", "completed", "partial", "failed", "cancelled", "unavailable"]
+    },
+    "requested_at": {"type": "string", "format": "date-time"},
+    "started_at": {"type": ["string", "null"], "format": "date-time"},
+    "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "configuration_version": {"type": "string", "minLength": 1},
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "d1-finding.schema.json"}
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact_id", "kind", "sha256", "derivation"],
+        "properties": {
+          "artifact_id": {"type": "string"},
+          "kind": {"enum": ["frame", "audio_derivative", "crop", "raw_output", "visualization"]},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "derivation": {"type": "string", "minLength": 1},
+          "d2_reference": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "coverage": {
+      "type": ["object", "null"],
+      "description": "Modality-specific examined, rejected and unexamined coverage"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {"type": "string"},
+          "message": {"type": "string"},
+          "retryable": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

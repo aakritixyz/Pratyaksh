@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pratyaksh.local/schemas/d1-finding-1.0.json",
+  "title": "Pratyaksh D1 Finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "finding_id",
+    "run_id",
+    "evidence_id",
+    "category",
+    "execution_status",
+    "result",
+    "observation",
+    "method",
+    "method_version",
+    "scope",
+    "score",
+    "location",
+    "support_refs",
+    "limitations",
+    "review_status",
+    "fixture"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "finding_id": {"type": "string", "pattern": "^F-[0-9a-f]+$"},
+    "run_id": {"type": "string", "pattern": "^RUN-[0-9a-f]+$"},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "category": {"const": "synthetic_media"},
+    "execution_status": {
+      "enum": ["queued", "running", "completed", "failed", "cancelled", "unavailable"]
+    },
+    "result": {"enum": ["genuine", "synthetic", "inconclusive", "not_applicable"]},
+    "observation": {"type": "string", "minLength": 1},
+    "method": {"type": "string", "minLength": 1},
+    "method_version": {"type": "string", "minLength": 1},
+    "scope": {"type": "string", "minLength": 1},
+    "score": {
+      "type": ["object", "null"],
+      "required": ["value", "range", "positive_class", "interpretation", "calibration_status"],
+      "properties": {
+        "value": {"type": "number", "minimum": 0, "maximum": 1},
+        "range": {
+          "type": "array",
+          "prefixItems": [{"const": 0}, {"const": 1}],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "positive_class": {"const": "Deepfake"},
+        "interpretation": {"type": "string", "minLength": 1},
+        "calibration_status": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "location": {"type": ["object", "null"]},
+    "support_refs": {"type": "array", "items": {"type": "string"}},
+    "limitations": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "review_status": {"enum": ["unreviewed", "accepted", "rejected", "needs_review"]},
+    "fixture": {"type": "boolean"}
+  }
+}
